@@ -85,7 +85,7 @@ public class AuthControllerTests
             Email = "johndoe@example.com",
             Password = "password123"
         };
-        var expectedResult = new LoginResult("mocked_token", new UserDto(Guid.NewGuid(), "johndoe", "johndoe@example.com", DateTime.UtcNow));
+        var expectedResult = new LoginResult("mocked_token", "mocked_refresh_token", new UserDto(Guid.NewGuid(), "johndoe", "johndoe@example.com", DateTime.UtcNow));
         _userService.LoginAsync(request, Arg.Any<CancellationToken>()).Returns(expectedResult);
 
         var response = await _controller.Login(request, CancellationToken.None);
@@ -96,6 +96,7 @@ public class AuthControllerTests
         Assert.Empty(apiResponse.Errors);
         Assert.NotNull(apiResponse.Data);
         Assert.Equal(expectedResult.Token, apiResponse.Data.Token);
+        Assert.Equal(expectedResult.RefreshToken, apiResponse.Data.RefreshToken);
         Assert.Equal(expectedResult.User.Id, apiResponse.Data.User.Id);
         Assert.Equal(expectedResult.User.Username, apiResponse.Data.User.Username);
         Assert.Equal(expectedResult.User.Email, apiResponse.Data.User.Email);
@@ -110,5 +111,36 @@ public class AuthControllerTests
 
         var exception = await Assert.ThrowsAsync<ArgumentException>(() => _controller.Login(request, CancellationToken.None));
         Assert.Equal(ErrorMessages.User.InvalidCredentials, exception.Message);
+    }
+
+    [Fact]
+    public async Task Refresh_WithValidRequest_ReturnsOkWithResult()
+    {
+        var request = new RefreshTokenRequest { RefreshToken = "old_token" };
+        var expectedResult = new LoginResult("new_token", "new_refresh_token", new UserDto(Guid.NewGuid(), "johndoe", "johndoe@example.com", DateTime.UtcNow));
+        _userService.RefreshTokenAsync(request, Arg.Any<CancellationToken>()).Returns(expectedResult);
+
+        var response = await _controller.Refresh(request, CancellationToken.None);
+
+        var okResult = Assert.IsType<OkObjectResult>(response);
+        var apiResponse = Assert.IsType<ApiResponse<LoginResponse>>(okResult.Value);
+        Assert.False(apiResponse.IsError);
+        Assert.NotNull(apiResponse.Data);
+        Assert.Equal(expectedResult.Token, apiResponse.Data.Token);
+        Assert.Equal(expectedResult.RefreshToken, apiResponse.Data.RefreshToken);
+    }
+
+    [Fact]
+    public async Task Revoke_WithValidRequest_ReturnsOk()
+    {
+        var request = new RevokeTokenRequest { RefreshToken = "active_token" };
+        _userService.RevokeTokenAsync(request, Arg.Any<CancellationToken>()).Returns(Task.CompletedTask);
+
+        var response = await _controller.Revoke(request, CancellationToken.None);
+
+        var okResult = Assert.IsType<OkObjectResult>(response);
+        var apiResponse = Assert.IsType<ApiResponse<object>>(okResult.Value);
+        Assert.False(apiResponse.IsError);
+        Assert.Null(apiResponse.Data);
     }
 }
