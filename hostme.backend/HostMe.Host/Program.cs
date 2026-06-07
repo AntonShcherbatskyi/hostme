@@ -28,7 +28,6 @@ public class Program
         builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
         builder.Services.AddScoped<IUserService, UserService>();
         
-        
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen(options =>
         {
@@ -82,20 +81,7 @@ public class Program
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "HostMe API v1");
             });
         }
-
-        using (var scope = app.Services.CreateScope())
-        {
-            try
-            {
-                var dbContext = scope.ServiceProvider.GetRequiredService<HostMeDbContext>();
-                dbContext.Database.Migrate();
-            }
-            catch (Exception ex)
-            {
-                app.Logger.LogError(ex, "An error occurred while migrating the database.");
-            }
-        }
-
+        
         app.MapControllers();
         app.Run();
     }
