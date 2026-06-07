@@ -94,6 +94,17 @@ public class S3Service : IS3Service
         } while (listResponse.IsTruncated == true);
     }
 
+    public string GetSiteUrl(string s3Key)
+    {
+        if (!string.IsNullOrEmpty(_options.ServiceUrl))
+        {
+            return $"{_options.ServiceUrl.TrimEnd('/')}/{_options.BucketName}/{s3Key}/index.html";
+        }
+
+        var region = _options.Region ?? "us-east-1";
+        return $"https://{_options.BucketName}.s3.{region}.amazonaws.com/{s3Key}/index.html";
+    }
+
     private static string GetContentType(string filePath)
     {
         var extension = Path.GetExtension(filePath).ToLowerInvariant();

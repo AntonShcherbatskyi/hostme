@@ -47,9 +47,11 @@ public class Program
         });
 
         builder.Services.AddScoped<IUserRepository, UserRepository>();
+        builder.Services.AddScoped<ISiteRepository, SiteRepository>();
         builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
         builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         builder.Services.AddScoped<IUserService, UserService>();
+        builder.Services.AddScoped<ISiteService, SiteService>();
         builder.Services.AddScoped<IS3Service, S3Service>();
 
         builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
