@@ -6,6 +6,7 @@ using HostMe.Domain.Services;
 using HostMe.Domain.Services.Models;
 using HostMe.Infrastructure.Options;
 using HostMe.Infrastructure.Security;
+using HostMe.Infrastructure.Storage;
 using HostMe.Persistance;
 using HostMe.Persistance.Repositories;
 using HostMe.Host.Middleware;
@@ -34,6 +35,11 @@ public class Program
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
+        builder.Services.AddOptions<S3Options>()
+            .BindConfiguration(S3Options.SectionName)
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
         builder.Services.AddDbContext<HostMeDbContext>((serviceProvider, options) =>
         {
             var dbOptions = serviceProvider.GetRequiredService<IOptions<DatabaseOptions>>().Value;
@@ -44,6 +50,7 @@ public class Program
         builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
         builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         builder.Services.AddScoped<IUserService, UserService>();
+        builder.Services.AddScoped<IS3Service, S3Service>();
 
         builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
             .Configure<IOptions<JwtSettings>>((options, jwtSettingsOptions) =>

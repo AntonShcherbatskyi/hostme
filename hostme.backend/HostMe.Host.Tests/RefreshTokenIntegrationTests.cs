@@ -30,7 +30,8 @@ public class RefreshTokenIntegrationTests : IClassFixture<WebApplicationFactory<
                     { "Jwt:Secret", "super_secret_key_that_is_at_least_32_characters_long" },
                     { "Jwt:Issuer", "HostMe" },
                     { "Jwt:Audience", "HostMe" },
-                    { "Jwt:ExpiryMinutes", "60" }
+                    { "Jwt:ExpiryMinutes", "60" },
+                    { "S3:BucketName", "hostme-test-bucket" }
                 });
             });
 
