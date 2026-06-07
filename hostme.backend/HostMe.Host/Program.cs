@@ -9,6 +9,9 @@ using HostMe.Persistance.Repositories;
 using HostMe.Host.Middleware;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 namespace HostMe.Host;
 
@@ -25,7 +28,33 @@ public class Program
 
         builder.Services.AddScoped<IUserRepository, UserRepository>();
         builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
+        builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         builder.Services.AddScoped<IUserService, UserService>();
+
+        var jwtSection = builder.Configuration.GetSection(JwtSettings.SectionName);
+        builder.Services.Configure<JwtSettings>(jwtSection);
+        var secret = jwtSection.GetValue<string>("Secret") ?? throw new InvalidOperationException("JWT Secret is not configured.");
+
+        builder.Services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        })
+        .AddJwtBearer(options =>
+        {
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = jwtSection.GetValue<string>("Issuer"),
+                ValidAudience = jwtSection.GetValue<string>("Audience"),
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret))
+            };
+        });
+
+        builder.Services.AddAuthorization();
         
         builder.Services.AddControllers()
             .ConfigureApiBehaviorOptions(options =>
@@ -59,6 +88,8 @@ public class Program
             }
         }
 
+        app.UseAuthentication();
+        app.UseAuthorization();
         app.MapControllers();
         app.Run();
     }
