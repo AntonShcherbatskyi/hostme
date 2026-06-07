@@ -9,6 +9,7 @@ using HostMe.Persistance.Repositories;
 using HostMe.Host.Middleware;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi;
 
 namespace HostMe.Host;
 
@@ -27,6 +28,33 @@ public class Program
         builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
         builder.Services.AddScoped<IUserService, UserService>();
         
+        
+        builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddSwaggerGen(options =>
+        {
+            options.SwaggerDoc("v1", new OpenApiInfo
+            {
+                Title = "HostMe API",
+                Version = "v1",
+                Description = "HostMe Backend API services"
+            });
+
+            options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+            {
+                Name = "Authorization",
+                Type = SecuritySchemeType.Http,
+                Scheme = "Bearer",
+                BearerFormat = "JWT",
+                In = ParameterLocation.Header,
+                Description = "Enter JWT token"
+            });
+
+            options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+            {
+                [new OpenApiSecuritySchemeReference("Bearer", document)] = new List<string>()
+            });
+        });
+
         builder.Services.AddControllers()
             .ConfigureApiBehaviorOptions(options =>
             {
@@ -45,6 +73,15 @@ public class Program
         var app = builder.Build();
 
         app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+        if (app.Environment.IsDevelopment())
+        {
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
+            {
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "HostMe API v1");
+            });
+        }
 
         using (var scope = app.Services.CreateScope())
         {
