@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="HostMe.Domain/HostMe.Domain.csproj" />
+    <Project Path="HostMe.Host/HostMe.Host.csproj" />
+    <Project Path="HostMe.Infrastructure/HostMe.Infrastructure.csproj" />
+    <Project Path="HostMe.Persistance/HostMe.Persistance.csproj" />
+    <Project Path="HostMe.Application/HostMe.Application.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="HostMe.Application.Tests/HostMe.Application.Tests.csproj" />
+    <Project Path="HostMe.Infrastructure.Tests/HostMe.Infrastructure.Tests.csproj" />
+    <Project Path="HostMe.Host.Tests/HostMe.Host.Tests.csproj" />
+  </Folder>
+</Solution>
