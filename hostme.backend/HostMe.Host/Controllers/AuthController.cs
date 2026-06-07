@@ -28,7 +28,22 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
     {
         var result = await _userService.LoginAsync(request, cancellationToken);
-        var response = new LoginResponse(result.Token, result.User);
+        var response = new LoginResponse(result.Token, result.RefreshToken, result.User);
         return Ok(ApiResponse<LoginResponse>.Success(response));
+    }
+
+    [HttpPost("refresh")]
+    public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _userService.RefreshTokenAsync(request, cancellationToken);
+        var response = new LoginResponse(result.Token, result.RefreshToken, result.User);
+        return Ok(ApiResponse<LoginResponse>.Success(response));
+    }
+
+    [HttpPost("revoke")]
+    public async Task<IActionResult> Revoke([FromBody] RevokeTokenRequest request, CancellationToken cancellationToken)
+    {
+        await _userService.RevokeTokenAsync(request, cancellationToken);
+        return Ok(ApiResponse<object>.Success(null!));
     }
 }

@@ -10,6 +10,7 @@ public class HostMeDbContext : DbContext
     }
 
     public DbSet<User> Users => Set<User>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -24,6 +25,21 @@ public class HostMeDbContext : DbContext
             entity.HasIndex(e => e.Username).IsUnique();
             entity.Property(e => e.PasswordHash).IsRequired();
             entity.Property(e => e.CreatedAt).IsRequired();
+        });
+
+        modelBuilder.Entity<RefreshToken>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Token).IsRequired().HasMaxLength(500);
+            entity.HasIndex(e => e.Token).IsUnique();
+            entity.Property(e => e.ExpiryUtc).IsRequired();
+            entity.Property(e => e.CreatedUtc).IsRequired();
+            entity.Property(e => e.RevokedUtc);
+
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.RefreshTokens)
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

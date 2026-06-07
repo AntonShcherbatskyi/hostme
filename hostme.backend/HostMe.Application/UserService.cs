@@ -84,8 +84,77 @@ public class UserService : IUserService
             throw new ArgumentException(ErrorMessages.User.InvalidCredentials);
 
         var token = _jwtTokenGenerator.GenerateToken(user);
+        var refreshTokenString = GenerateSecureRefreshToken();
 
-        return new LoginResult(token, new UserDto(user.Id, user.Username, user.Email, user.CreatedAt));
+        var refreshToken = new RefreshToken
+        {
+            Token = refreshTokenString,
+            ExpiryUtc = DateTime.UtcNow.AddDays(7),
+            CreatedUtc = DateTime.UtcNow,
+            UserId = user.Id
+        };
+
+        user.RefreshTokens.Add(refreshToken);
+        await _userRepository.SaveChangesAsync(cancellationToken);
+
+        return new LoginResult(token, refreshTokenString, new UserDto(user.Id, user.Username, user.Email, user.CreatedAt));
+    }
+
+    public async Task<LoginResult> RefreshTokenAsync(RefreshTokenRequest request, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.RefreshToken))
+            throw new ArgumentException(ErrorMessages.User.RefreshTokenRequired);
+
+        var user = await _userRepository.GetUserByRefreshTokenAsync(request.RefreshToken, cancellationToken);
+        if (user == null)
+            throw new ArgumentException(ErrorMessages.User.InvalidRefreshToken);
+
+        var existingToken = user.RefreshTokens.FirstOrDefault(t => t.Token == request.RefreshToken);
+        if (existingToken == null || !existingToken.IsActive)
+            throw new ArgumentException(ErrorMessages.User.InvalidRefreshToken);
+
+        existingToken.RevokedUtc = DateTime.UtcNow;
+
+        var newAccessToken = _jwtTokenGenerator.GenerateToken(user);
+        var newRefreshTokenString = GenerateSecureRefreshToken();
+
+        var newRefreshToken = new RefreshToken
+        {
+            Token = newRefreshTokenString,
+            ExpiryUtc = DateTime.UtcNow.AddDays(7),
+            CreatedUtc = DateTime.UtcNow,
+            UserId = user.Id
+        };
+
+        user.RefreshTokens.Add(newRefreshToken);
+        await _userRepository.SaveChangesAsync(cancellationToken);
+
+        return new LoginResult(newAccessToken, newRefreshTokenString, new UserDto(user.Id, user.Username, user.Email, user.CreatedAt));
+    }
+
+    public async Task RevokeTokenAsync(RevokeTokenRequest request, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.RefreshToken))
+            throw new ArgumentException(ErrorMessages.User.RefreshTokenRequired);
+
+        var user = await _userRepository.GetUserByRefreshTokenAsync(request.RefreshToken, cancellationToken);
+        if (user == null)
+            throw new ArgumentException(ErrorMessages.User.InvalidRefreshToken);
+
+        var existingToken = user.RefreshTokens.FirstOrDefault(t => t.Token == request.RefreshToken);
+        if (existingToken == null || !existingToken.IsActive)
+            throw new ArgumentException(ErrorMessages.User.InvalidRefreshToken);
+
+        existingToken.RevokedUtc = DateTime.UtcNow;
+        await _userRepository.SaveChangesAsync(cancellationToken);
+    }
+
+    private static string GenerateSecureRefreshToken()
+    {
+        var randomNumber = new byte[64];
+        using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
+        rng.GetBytes(randomNumber);
+        return Convert.ToBase64String(randomNumber);
     }
 
     private static bool IsValidEmail(string email)

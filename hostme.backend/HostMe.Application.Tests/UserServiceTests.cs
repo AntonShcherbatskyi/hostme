@@ -205,6 +205,7 @@ public class UserServiceTests : IDisposable
 
         Assert.NotNull(result);
         Assert.Equal("mocked_token", result.Token);
+        Assert.NotEmpty(result.RefreshToken);
         Assert.Equal(user.Username, result.User.Username);
         Assert.Equal(user.Email, result.User.Email);
     }
@@ -294,5 +295,139 @@ public class UserServiceTests : IDisposable
 
         var exception = await Assert.ThrowsAsync<ArgumentException>(() => _userService.LoginAsync(request));
         Assert.Contains(ErrorMessages.User.InvalidCredentials, exception.Message);
+    }
+
+    [Fact]
+    public async Task RefreshTokenAsync_WithValidActiveToken_ShouldRotateTokens()
+    {
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Username = "johndoe",
+            Email = "johndoe@example.com",
+            PasswordHash = "hash",
+            CreatedAt = DateTime.UtcNow
+        };
+        var oldRefreshToken = new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            Token = "old_token",
+            ExpiryUtc = DateTime.UtcNow.AddDays(1),
+            CreatedUtc = DateTime.UtcNow,
+            UserId = user.Id
+        };
+        user.RefreshTokens.Add(oldRefreshToken);
+        _dbContext.Users.Add(user);
+        await _dbContext.SaveChangesAsync();
+
+        var request = new RefreshTokenRequest { RefreshToken = "old_token" };
+        _jwtTokenGenerator.GenerateToken(Arg.Is<User>(u => u.Id == user.Id)).Returns("new_access_token");
+
+        var result = await _userService.RefreshTokenAsync(request);
+
+        Assert.NotNull(result);
+        Assert.Equal("new_access_token", result.Token);
+        Assert.NotEqual("old_token", result.RefreshToken);
+        Assert.NotEmpty(result.RefreshToken);
+
+        var refreshedUser = await _dbContext.Users.Include(u => u.RefreshTokens).FirstAsync(u => u.Id == user.Id);
+        var oldToken = refreshedUser.RefreshTokens.First(t => t.Token == "old_token");
+        Assert.NotNull(oldToken.RevokedUtc);
+
+        var newToken = refreshedUser.RefreshTokens.First(t => t.Token == result.RefreshToken);
+        Assert.Null(newToken.RevokedUtc);
+        Assert.False(newToken.IsExpired);
+    }
+
+    [Fact]
+    public async Task RefreshTokenAsync_WithExpiredToken_ShouldThrowArgumentException()
+    {
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Username = "johndoe",
+            Email = "johndoe@example.com",
+            PasswordHash = "hash",
+            CreatedAt = DateTime.UtcNow
+        };
+        var expiredToken = new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            Token = "expired_token",
+            ExpiryUtc = DateTime.UtcNow.AddDays(-1),
+            CreatedUtc = DateTime.UtcNow.AddDays(-2),
+            UserId = user.Id
+        };
+        user.RefreshTokens.Add(expiredToken);
+        _dbContext.Users.Add(user);
+        await _dbContext.SaveChangesAsync();
+
+        var request = new RefreshTokenRequest { RefreshToken = "expired_token" };
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() => _userService.RefreshTokenAsync(request));
+        Assert.Contains(ErrorMessages.User.InvalidRefreshToken, exception.Message);
+    }
+
+    [Fact]
+    public async Task RefreshTokenAsync_WithRevokedToken_ShouldThrowArgumentException()
+    {
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Username = "johndoe",
+            Email = "johndoe@example.com",
+            PasswordHash = "hash",
+            CreatedAt = DateTime.UtcNow
+        };
+        var revokedToken = new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            Token = "revoked_token",
+            ExpiryUtc = DateTime.UtcNow.AddDays(1),
+            CreatedUtc = DateTime.UtcNow,
+            RevokedUtc = DateTime.UtcNow,
+            UserId = user.Id
+        };
+        user.RefreshTokens.Add(revokedToken);
+        _dbContext.Users.Add(user);
+        await _dbContext.SaveChangesAsync();
+
+        var request = new RefreshTokenRequest { RefreshToken = "revoked_token" };
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() => _userService.RefreshTokenAsync(request));
+        Assert.Contains(ErrorMessages.User.InvalidRefreshToken, exception.Message);
+    }
+
+    [Fact]
+    public async Task RevokeTokenAsync_WithValidToken_ShouldRevokeToken()
+    {
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Username = "johndoe",
+            Email = "johndoe@example.com",
+            PasswordHash = "hash",
+            CreatedAt = DateTime.UtcNow
+        };
+        var activeToken = new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            Token = "active_token",
+            ExpiryUtc = DateTime.UtcNow.AddDays(1),
+            CreatedUtc = DateTime.UtcNow,
+            UserId = user.Id
+        };
+        user.RefreshTokens.Add(activeToken);
+        _dbContext.Users.Add(user);
+        await _dbContext.SaveChangesAsync();
+
+        var request = new RevokeTokenRequest { RefreshToken = "active_token" };
+
+        await _userService.RevokeTokenAsync(request);
+
+        var refreshedUser = await _dbContext.Users.Include(u => u.RefreshTokens).FirstAsync(u => u.Id == user.Id);
+        var token = refreshedUser.RefreshTokens.First(t => t.Token == "active_token");
+        Assert.NotNull(token.RevokedUtc);
+        Assert.True(token.IsRevoked);
     }
 }
