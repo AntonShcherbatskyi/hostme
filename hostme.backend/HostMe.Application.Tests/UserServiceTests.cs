@@ -13,6 +13,7 @@ public class UserServiceTests : IDisposable
 {
     private readonly HostMeDbContext _dbContext;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly IJwtTokenGenerator _jwtTokenGenerator;
     private readonly UserService _userService;
 
     public UserServiceTests()
@@ -24,7 +25,8 @@ public class UserServiceTests : IDisposable
         _dbContext = new HostMeDbContext(options);
         var userRepository = new HostMe.Persistance.Repositories.UserRepository(_dbContext);
         _passwordHasher = Substitute.For<IPasswordHasher>();
-        _userService = new UserService(userRepository, _passwordHasher);
+        _jwtTokenGenerator = Substitute.For<IJwtTokenGenerator>();
+        _userService = new UserService(userRepository, _passwordHasher, _jwtTokenGenerator);
     }
 
     public void Dispose()
@@ -174,5 +176,123 @@ public class UserServiceTests : IDisposable
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => _userService.RegisterAsync(request));
         Assert.Contains(ErrorMessages.User.UsernameTaken, exception.Message);
+    }
+
+    [Fact]
+    public async Task LoginAsync_WithValidEmail_ShouldReturnTokenAndDto()
+    {
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Username = "johndoe",
+            Email = "johndoe@example.com",
+            PasswordHash = "hashed_password",
+            CreatedAt = DateTime.UtcNow
+        };
+        _dbContext.Users.Add(user);
+        await _dbContext.SaveChangesAsync();
+
+        var request = new LoginRequest
+        {
+            Email = "johndoe@example.com",
+            Password = "password123"
+        };
+
+        _passwordHasher.VerifyPassword(request.Password, user.PasswordHash).Returns(true);
+        _jwtTokenGenerator.GenerateToken(Arg.Is<User>(u => u.Id == user.Id)).Returns("mocked_token");
+
+        var result = await _userService.LoginAsync(request);
+
+        Assert.NotNull(result);
+        Assert.Equal("mocked_token", result.Token);
+        Assert.Equal(user.Username, result.User.Username);
+        Assert.Equal(user.Email, result.User.Email);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData(null)]
+    public async Task LoginAsync_WithMissingEmail_ShouldThrowArgumentException(string? email)
+    {
+        var request = new LoginRequest
+        {
+            Email = email!,
+            Password = "password123"
+        };
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() => _userService.LoginAsync(request));
+        Assert.Contains(ErrorMessages.User.EmailRequired, exception.Message);
+    }
+
+    [Theory]
+    [InlineData("invalid-email")]
+    [InlineData("test@")]
+    [InlineData("@example.com")]
+    public async Task LoginAsync_WithMalformedEmail_ShouldThrowArgumentException(string email)
+    {
+        var request = new LoginRequest
+        {
+            Email = email,
+            Password = "password123"
+        };
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() => _userService.LoginAsync(request));
+        Assert.Contains(ErrorMessages.User.EmailInvalid, exception.Message);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData(null)]
+    public async Task LoginAsync_WithMissingPassword_ShouldThrowArgumentException(string? password)
+    {
+        var request = new LoginRequest
+        {
+            Email = "johndoe@example.com",
+            Password = password!
+        };
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() => _userService.LoginAsync(request));
+        Assert.Contains(ErrorMessages.User.PasswordRequired, exception.Message);
+    }
+
+    [Fact]
+    public async Task LoginAsync_WithNonExistentUser_ShouldThrowArgumentException()
+    {
+        var request = new LoginRequest
+        {
+            Email = "nonexistent@example.com",
+            Password = "password123"
+        };
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() => _userService.LoginAsync(request));
+        Assert.Contains(ErrorMessages.User.InvalidCredentials, exception.Message);
+    }
+
+    [Fact]
+    public async Task LoginAsync_WithIncorrectPassword_ShouldThrowArgumentException()
+    {
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Username = "johndoe",
+            Email = "johndoe@example.com",
+            PasswordHash = "hashed_password",
+            CreatedAt = DateTime.UtcNow
+        };
+        _dbContext.Users.Add(user);
+        await _dbContext.SaveChangesAsync();
+
+        var request = new LoginRequest
+        {
+            Email = "johndoe@example.com",
+            Password = "wrongpassword"
+        };
+
+        _passwordHasher.VerifyPassword(request.Password, user.PasswordHash).Returns(false);
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() => _userService.LoginAsync(request));
+        Assert.Contains(ErrorMessages.User.InvalidCredentials, exception.Message);
     }
 }

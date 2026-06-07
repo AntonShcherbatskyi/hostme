@@ -1,3 +1,4 @@
+using System.Text;
 using HostMe.Application;
 using HostMe.Domain.Repositories;
 using HostMe.Domain.Security;
@@ -7,8 +8,10 @@ using HostMe.Infrastructure.Security;
 using HostMe.Persistance;
 using HostMe.Persistance.Repositories;
 using HostMe.Host.Middleware;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 
 namespace HostMe.Host;
@@ -26,7 +29,33 @@ public class Program
 
         builder.Services.AddScoped<IUserRepository, UserRepository>();
         builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
+        builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         builder.Services.AddScoped<IUserService, UserService>();
+
+        var jwtSection = builder.Configuration.GetSection(JwtSettings.SectionName);
+        builder.Services.Configure<JwtSettings>(jwtSection);
+        var secret = jwtSection.GetValue<string>("Secret") ?? throw new InvalidOperationException("JWT Secret is not configured.");
+
+        builder.Services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        })
+        .AddJwtBearer(options =>
+        {
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = jwtSection.GetValue<string>("Issuer"),
+                ValidAudience = jwtSection.GetValue<string>("Audience"),
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret))
+            };
+        });
+
+        builder.Services.AddAuthorization();
         
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen(options =>
@@ -81,7 +110,9 @@ public class Program
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "HostMe API v1");
             });
         }
-        
+
+        app.UseAuthentication();
+        app.UseAuthorization();
         app.MapControllers();
         app.Run();
     }

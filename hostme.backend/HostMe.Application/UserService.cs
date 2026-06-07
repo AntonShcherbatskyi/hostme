@@ -11,11 +11,13 @@ public class UserService : IUserService
 {
     private readonly IUserRepository _userRepository;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly IJwtTokenGenerator _jwtTokenGenerator;
 
-    public UserService(IUserRepository userRepository, IPasswordHasher passwordHasher)
+    public UserService(IUserRepository userRepository, IPasswordHasher passwordHasher, IJwtTokenGenerator jwtTokenGenerator)
     {
         _userRepository = userRepository;
         _passwordHasher = passwordHasher;
+        _jwtTokenGenerator = jwtTokenGenerator;
     }
 
     public async Task<UserDto> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
@@ -58,6 +60,32 @@ public class UserService : IUserService
         await _userRepository.SaveChangesAsync(cancellationToken);
 
         return new UserDto(user.Id, user.Username, user.Email, user.CreatedAt);
+    }
+
+    public async Task<LoginResult> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.Email))
+            throw new ArgumentException(ErrorMessages.User.EmailRequired);
+
+        if (!IsValidEmail(request.Email))
+            throw new ArgumentException(ErrorMessages.User.EmailInvalid);
+
+        if (string.IsNullOrWhiteSpace(request.Password))
+            throw new ArgumentException(ErrorMessages.User.PasswordRequired);
+
+        var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+        var user = await _userRepository.GetByEmailAsync(normalizedEmail, cancellationToken);
+
+        if (user == null)
+            throw new ArgumentException(ErrorMessages.User.InvalidCredentials);
+
+        var isPasswordValid = _passwordHasher.VerifyPassword(request.Password, user.PasswordHash);
+        if (!isPasswordValid)
+            throw new ArgumentException(ErrorMessages.User.InvalidCredentials);
+
+        var token = _jwtTokenGenerator.GenerateToken(user);
+
+        return new LoginResult(token, new UserDto(user.Id, user.Username, user.Email, user.CreatedAt));
     }
 
     private static bool IsValidEmail(string email)

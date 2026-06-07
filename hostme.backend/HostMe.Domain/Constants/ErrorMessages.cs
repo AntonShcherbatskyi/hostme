@@ -15,6 +15,8 @@ public static class ErrorMessages
 
         public const string PasswordRequired = "Password is required.";
         public const string PasswordLength = "Password must be at least 6 characters long.";
+        public const string UsernameOrEmailRequired = "Username or email is required.";
+        public const string InvalidCredentials = "Invalid username/email or password.";
     }
 
     public static class General

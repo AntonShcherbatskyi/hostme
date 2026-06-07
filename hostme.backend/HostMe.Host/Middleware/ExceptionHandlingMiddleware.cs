@@ -33,7 +33,7 @@ public class ExceptionHandlingMiddleware
     {
         context.Response.ContentType = "application/json";
 
-        var statusCode = HttpStatusCode.InternalServerError;
+        HttpStatusCode statusCode;
         var errors = new List<string>();
 
         switch (exception)

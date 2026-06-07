@@ -23,4 +23,12 @@ public class AuthController : ControllerBase
         var response = new RegisterResponse(result.Id, result.Username, result.Email, result.CreatedAt);
         return Ok(ApiResponse<RegisterResponse>.Success(response));
     }
+
+    [HttpPost("login")]
+    public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _userService.LoginAsync(request, cancellationToken);
+        var response = new LoginResponse(result.Token, result.User);
+        return Ok(ApiResponse<LoginResponse>.Success(response));
+    }
 }
