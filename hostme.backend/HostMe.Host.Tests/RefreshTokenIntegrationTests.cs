@@ -13,51 +13,13 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace HostMe.Host.Tests;
 
-public class RefreshTokenIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
+public class RefreshTokenIntegrationTests : IClassFixture<HostMeWebApplicationFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly HostMeWebApplicationFactory _factory;
 
-    public RefreshTokenIntegrationTests(WebApplicationFactory<Program> factory)
+    public RefreshTokenIntegrationTests(HostMeWebApplicationFactory factory)
     {
-        _factory = factory.WithWebHostBuilder(builder =>
-        {
-            builder.UseEnvironment("Testing");
-
-            builder.ConfigureAppConfiguration((context, configBuilder) =>
-            {
-                configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    { "Jwt:Secret", "super_secret_key_that_is_at_least_32_characters_long" },
-                    { "Jwt:Issuer", "HostMe" },
-                    { "Jwt:Audience", "HostMe" },
-                    { "Jwt:ExpiryMinutes", "60" },
-                    { "S3:BucketName", "hostme-test-bucket" }
-                });
-            });
-
-            builder.ConfigureServices(services =>
-            {
-                var toRemove = services.Where(d => 
-                    d.ServiceType == typeof(DbContextOptions<HostMeDbContext>) ||
-                    d.ServiceType == typeof(DbContextOptions) ||
-                    d.ServiceType == typeof(HostMeDbContext) ||
-                    (d.ServiceType.Namespace != null && 
-                     (d.ServiceType.Namespace.StartsWith("Microsoft.EntityFrameworkCore") || 
-                      d.ServiceType.Namespace.StartsWith("Npgsql.EntityFrameworkCore")))
-                ).ToList();
-
-                foreach (var descriptor in toRemove)
-                {
-                    services.Remove(descriptor);
-                }
-
-                var databaseName = "IntegrationTestsDb_" + Guid.NewGuid();
-                services.AddDbContext<HostMeDbContext>(options =>
-                {
-                    options.UseInMemoryDatabase(databaseName);
-                });
-            });
-        });
+        _factory = factory;
     }
 
     [Fact]

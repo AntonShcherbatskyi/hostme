@@ -19,11 +19,17 @@ public static class ErrorMessages
         public const string InvalidCredentials = "Invalid username/email or password.";
         public const string RefreshTokenRequired = "Refresh token is required.";
         public const string InvalidRefreshToken = "Invalid or expired refresh token.";
+        public const string Unathorized = "User is unathorized";
     }
 
     public static class General
     {
         public const string UnexpectedError = "An unexpected error occurred: ";
         public const string DatabaseConnectionFailed = "Database connection failed.";
+    }
+    
+    public static class Site
+    {
+        public const string ContentTypeZIPSupported = "Only ZIP files are supported";
     }
 }

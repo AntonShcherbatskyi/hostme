@@ -24,7 +24,7 @@ public class Program
     public static void Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
-
+        
         builder.Services.AddOptions<DatabaseOptions>()
             .BindConfiguration(DatabaseOptions.SectionName)
             .ValidateDataAnnotations()
@@ -53,6 +53,7 @@ public class Program
         builder.Services.AddScoped<IUserService, UserService>();
         builder.Services.AddScoped<ISiteService, SiteService>();
         builder.Services.AddScoped<IS3Service, S3Service>();
+        builder.Services.AddSingleton<ITempDirectoryFactory, TempDirectoryFactory>();
 
         builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
             .Configure<IOptions<JwtSettings>>((options, jwtSettingsOptions) =>

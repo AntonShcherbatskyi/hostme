@@ -5,7 +5,6 @@ using Amazon.S3.Model;
 using HostMe.Domain.Services;
 using HostMe.Infrastructure.Options;
 using Microsoft.Extensions.Options;
-using System.IO;
 
 namespace HostMe.Infrastructure.Storage;
 

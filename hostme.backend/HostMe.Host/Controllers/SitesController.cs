@@ -1,4 +1,6 @@
+using System.Net.Mime;
 using System.Security.Claims;
+using HostMe.Domain.Constants;
 using HostMe.Domain.Services;
 using HostMe.Domain.Services.Models;
 using HostMe.Host.Models;
@@ -23,22 +25,14 @@ public class SitesController : ControllerBase
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> Upload([FromForm] UploadSiteRequest request, CancellationToken cancellationToken)
     {
-        if (request.File == null || request.File.Length == 0)
-        {
-            return BadRequest(ApiResponse<object>.Failure("ZIP file is required."));
-        }
-
-        if (string.IsNullOrWhiteSpace(request.Name))
-        {
-            return BadRequest(ApiResponse<object>.Failure("Site name is required."));
-        }
-
         var extension = Path.GetExtension(request.File.FileName).ToLowerInvariant();
-        if (extension != ".zip")
+        var contentType = request.File.ContentType;
+        
+        if (extension != ".zip" || contentType != MediaTypeNames.Application.Zip)
         {
-            return BadRequest(ApiResponse<object>.Failure("Only ZIP files are supported."));
+            return BadRequest(ApiResponse.Failure(ErrorMessages.Site.ContentTypeZIPSupported));
         }
-
+        
         Guid userId;
         try
         {
@@ -46,7 +40,7 @@ public class SitesController : ControllerBase
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Unauthorized(ApiResponse<object>.Failure(ex.Message));
+            return Unauthorized(ApiResponse.Failure(ex.Message));
         }
 
         using var stream = request.File.OpenReadStream();
@@ -63,7 +57,7 @@ public class SitesController : ControllerBase
 
         if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
         {
-            throw new UnauthorizedAccessException("User is not authenticated or user claim is invalid.");
+            throw new UnauthorizedAccessException(ErrorMessages.User.Unathorized);
         }
 
         return userId;
