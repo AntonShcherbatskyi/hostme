@@ -7,4 +7,6 @@ public class User
     public string Email { get; set; } = null!;
     public string PasswordHash { get; set; } = null!;
     public DateTime CreatedAt { get; set; }
+    public List<RefreshToken> RefreshTokens { get; set; } = new();
+    public List<Site> Sites { get; set; } = new();
 }

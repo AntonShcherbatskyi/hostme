@@ -33,7 +33,7 @@ public class ExceptionHandlingMiddleware
     {
         context.Response.ContentType = "application/json";
 
-        var statusCode = HttpStatusCode.InternalServerError;
+        HttpStatusCode statusCode;
         var errors = new List<string>();
 
         switch (exception)
@@ -45,6 +45,14 @@ public class ExceptionHandlingMiddleware
             case InvalidOperationException invEx:
                 statusCode = HttpStatusCode.Conflict;
                 errors.Add(invEx.Message);
+                break;
+            case KeyNotFoundException knfEx:
+                statusCode = HttpStatusCode.NotFound;
+                errors.Add(knfEx.Message);
+                break;
+            case UnauthorizedAccessException unAuthEx:
+                statusCode = HttpStatusCode.Forbidden;
+                errors.Add(unAuthEx.Message);
                 break;
             default:
                 statusCode = HttpStatusCode.InternalServerError;

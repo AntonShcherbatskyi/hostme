@@ -136,4 +136,62 @@ public class ExceptionHandlingMiddlewareTests
         Assert.Equal(ErrorMessages.General.UnexpectedError + "Database connection failed.", apiResponse.Errors[0]);
         Assert.Null(apiResponse.Data);
     }
+
+    [Fact]
+    public async Task InvokeAsync_WhenKeyNotFoundException_ReturnsNotFound()
+    {
+        var context = new DefaultHttpContext();
+        var responseStream = new MemoryStream();
+        context.Response.Body = responseStream;
+
+        RequestDelegate next = (ctx) => throw new KeyNotFoundException("Resource not found.");
+        var middleware = new ExceptionHandlingMiddleware(next, _logger);
+
+        await middleware.InvokeAsync(context);
+
+        Assert.Equal((int)HttpStatusCode.NotFound, context.Response.StatusCode);
+        Assert.Equal("application/json", context.Response.ContentType);
+
+        responseStream.Position = 0;
+        using var reader = new StreamReader(responseStream);
+        var responseBody = await reader.ReadToEndAsync();
+        
+        var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+        var apiResponse = JsonSerializer.Deserialize<ApiResponse<object>>(responseBody, jsonOptions);
+
+        Assert.NotNull(apiResponse);
+        Assert.True(apiResponse.IsError);
+        Assert.Single(apiResponse.Errors);
+        Assert.Equal("Resource not found.", apiResponse.Errors[0]);
+        Assert.Null(apiResponse.Data);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_WhenUnauthorizedAccessException_ReturnsForbidden()
+    {
+        var context = new DefaultHttpContext();
+        var responseStream = new MemoryStream();
+        context.Response.Body = responseStream;
+
+        RequestDelegate next = (ctx) => throw new UnauthorizedAccessException("Access denied.");
+        var middleware = new ExceptionHandlingMiddleware(next, _logger);
+
+        await middleware.InvokeAsync(context);
+
+        Assert.Equal((int)HttpStatusCode.Forbidden, context.Response.StatusCode);
+        Assert.Equal("application/json", context.Response.ContentType);
+
+        responseStream.Position = 0;
+        using var reader = new StreamReader(responseStream);
+        var responseBody = await reader.ReadToEndAsync();
+        
+        var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+        var apiResponse = JsonSerializer.Deserialize<ApiResponse<object>>(responseBody, jsonOptions);
+
+        Assert.NotNull(apiResponse);
+        Assert.True(apiResponse.IsError);
+        Assert.Single(apiResponse.Errors);
+        Assert.Equal("Access denied.", apiResponse.Errors[0]);
+        Assert.Null(apiResponse.Data);
+    }
 }
