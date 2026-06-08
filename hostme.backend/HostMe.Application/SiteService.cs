@@ -60,6 +60,12 @@ public class SiteService : ISiteService
         return new SiteDto(site.Id, site.UserId, site.Name, site.Url, site.CreatedAt);
     }
 
+    public async Task<IReadOnlyList<SiteDto>> GetUserSitesAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var sites = await _siteRepository.GetByUserIdAsync(userId, cancellationToken);
+        return sites.Select(s => new SiteDto(s.Id, s.UserId, s.Name, s.Url, s.CreatedAt)).ToList();
+    }
+
     private static void ExtractZip(Stream zipStream, string destinationDir)
     {
         using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read);

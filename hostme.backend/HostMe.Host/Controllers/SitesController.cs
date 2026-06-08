@@ -50,6 +50,24 @@ public class SitesController : ControllerBase
         return Ok(ApiResponse<SiteResponse>.Success(response));
     }
 
+    [HttpGet]
+    public async Task<IActionResult> GetSites(CancellationToken cancellationToken)
+    {
+        Guid userId;
+        try
+        {
+            userId = GetUserId();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(ApiResponse.Failure(ex.Message));
+        }
+
+        var sites = await _siteService.GetUserSitesAsync(userId, cancellationToken);
+        var response = sites.Select(s => new SiteResponse(s.Id, s.Name, s.Url, s.CreatedAt)).ToList();
+        return Ok(ApiResponse<List<SiteResponse>>.Success(response));
+    }
+
     private Guid GetUserId()
     {
         var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 

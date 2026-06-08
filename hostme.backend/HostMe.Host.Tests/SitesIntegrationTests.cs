@@ -236,4 +236,105 @@ public class SitesIntegrationTests : IClassFixture<HostMeWebApplicationFactory>
         Assert.False(File.Exists(expectedDsStorePath));
         Assert.False(Directory.Exists(expectedMacDir));
     }
+
+    [Fact]
+    public async Task GetSites_ReturnsOnlyCurrentUserSites()
+    {
+        var tempSourceDir = Path.Combine(Path.GetTempPath(), "source_" + Guid.NewGuid());
+        Directory.CreateDirectory(tempSourceDir);
+        File.WriteAllText(Path.Combine(tempSourceDir, "index.html"), "<h1>Test Site</h1>");
+        var tempZipPath = Path.Combine(Path.GetTempPath(), "site_" + Guid.NewGuid() + ".zip");
+        ZipFile.CreateFromDirectory(tempSourceDir, tempZipPath);
+        Directory.Delete(tempSourceDir, true);
+
+        var client = _factory.CreateClient();
+
+        var userAEmail = $"usera_{Guid.NewGuid()}@example.com";
+        var registerA = await client.PostAsJsonAsync("/api/auth/register", new RegisterRequest
+        {
+            Username = "usera",
+            Email = userAEmail,
+            Password = "password123"
+        });
+        Assert.Equal(HttpStatusCode.OK, registerA.StatusCode);
+
+        var loginResponseA = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest
+        {
+            Email = userAEmail,
+            Password = "password123"
+        });
+        var loginResultA = await loginResponseA.Content.ReadFromJsonAsync<ApiResponse<LoginResponse>>();
+        var tokenA = loginResultA!.Data!.Token;
+
+        var userBEmail = $"userb_{Guid.NewGuid()}@example.com";
+        var registerB = await client.PostAsJsonAsync("/api/auth/register", new RegisterRequest
+        {
+            Username = "userb",
+            Email = userBEmail,
+            Password = "password123"
+        });
+        Assert.Equal(HttpStatusCode.OK, registerB.StatusCode);
+
+        var loginResponseB = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest
+        {
+            Email = userBEmail,
+            Password = "password123"
+        });
+        var loginResultB = await loginResponseB.Content.ReadFromJsonAsync<ApiResponse<LoginResponse>>();
+        var tokenB = loginResultB!.Data!.Token;
+
+        using (var requestContent = new MultipartFormDataContent())
+        {
+            using var fileStream = File.OpenRead(tempZipPath);
+            var streamContent = new StreamContent(fileStream);
+            streamContent.Headers.ContentType = new MediaTypeHeaderValue("application/zip");
+            requestContent.Add(streamContent, "File", "site.zip");
+            requestContent.Add(new StringContent("User A Site"), "Name");
+
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenA);
+            var uploadResponse = await client.PostAsync("/api/sites/upload", requestContent);
+            Assert.Equal(HttpStatusCode.OK, uploadResponse.StatusCode);
+        }
+
+        using (var requestContent = new MultipartFormDataContent())
+        {
+            using var fileStream = File.OpenRead(tempZipPath);
+            var streamContent = new StreamContent(fileStream);
+            streamContent.Headers.ContentType = new MediaTypeHeaderValue("application/zip");
+            requestContent.Add(streamContent, "File", "site.zip");
+            requestContent.Add(new StringContent("User B Site"), "Name");
+
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenB);
+            var uploadResponse = await client.PostAsync("/api/sites/upload", requestContent);
+            Assert.Equal(HttpStatusCode.OK, uploadResponse.StatusCode);
+        }
+
+        File.Delete(tempZipPath);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenA);
+        var getResponseA = await client.GetAsync("/api/sites");
+        Assert.Equal(HttpStatusCode.OK, getResponseA.StatusCode);
+        var resultA = await getResponseA.Content.ReadFromJsonAsync<ApiResponse<List<SiteResponse>>>();
+        Assert.NotNull(resultA?.Data);
+        Assert.Single(resultA.Data);
+        Assert.Equal("User A Site", resultA.Data[0].Name);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenB);
+        var getResponseB = await client.GetAsync("/api/sites");
+        Assert.Equal(HttpStatusCode.OK, getResponseB.StatusCode);
+        var resultB = await getResponseB.Content.ReadFromJsonAsync<ApiResponse<List<SiteResponse>>>();
+        Assert.NotNull(resultB?.Data);
+        Assert.Single(resultB.Data);
+        Assert.Equal("User B Site", resultB.Data[0].Name);
+    }
+
+    [Fact]
+    public async Task GetSites_WhenUnauthenticated_ReturnsUnauthorized()
+    {
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = null;
+
+        var response = await client.GetAsync("/api/sites");
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
 }
