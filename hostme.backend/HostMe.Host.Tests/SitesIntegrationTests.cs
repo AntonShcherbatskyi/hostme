@@ -337,4 +337,162 @@ public class SitesIntegrationTests : IClassFixture<HostMeWebApplicationFactory>
         var response = await client.GetAsync("/api/sites");
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
+
+    [Fact]
+    public async Task DeleteSite_WithValidIdAndOwner_ShouldDeleteFromS3AndDb()
+    {
+        var tempSourceDir = Path.Combine(Path.GetTempPath(), "source_" + Guid.NewGuid());
+        Directory.CreateDirectory(tempSourceDir);
+        File.WriteAllText(Path.Combine(tempSourceDir, "index.html"), "<h1>Delete Me</h1>");
+        var tempZipPath = Path.Combine(Path.GetTempPath(), "site_" + Guid.NewGuid() + ".zip");
+        ZipFile.CreateFromDirectory(tempSourceDir, tempZipPath);
+        Directory.Delete(tempSourceDir, true);
+
+        var client = _factory.CreateClient();
+
+        var email = $"deleteuser_{Guid.NewGuid()}@example.com";
+        await client.PostAsJsonAsync("/api/auth/register", new RegisterRequest
+        {
+            Username = "deleteuser",
+            Email = email,
+            Password = "password123"
+        });
+
+        var loginResponse = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest
+        {
+            Email = email,
+            Password = "password123"
+        });
+        var loginResult = await loginResponse.Content.ReadFromJsonAsync<ApiResponse<LoginResponse>>();
+        var token = loginResult!.Data!.Token;
+
+        Guid siteId;
+        using (var requestContent = new MultipartFormDataContent())
+        {
+            using var fileStream = File.OpenRead(tempZipPath);
+            var streamContent = new StreamContent(fileStream);
+            streamContent.Headers.ContentType = new MediaTypeHeaderValue("application/zip");
+            requestContent.Add(streamContent, "File", "site.zip");
+            requestContent.Add(new StringContent("ToDeleteSite"), "Name");
+
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var uploadResponse = await client.PostAsync("/api/sites/upload", requestContent);
+            Assert.Equal(HttpStatusCode.OK, uploadResponse.StatusCode);
+            var uploadResult = await uploadResponse.Content.ReadFromJsonAsync<ApiResponse<SiteResponse>>();
+            siteId = uploadResult!.Data!.Id;
+        }
+
+        File.Delete(tempZipPath);
+
+        var s3Key = $"sites/{email.ToLowerInvariant().Trim()}/todeletesite";
+        var expectedHtmlPath = Path.Combine(_factory.FakeS3.RootDir, s3Key, "index.html");
+        Assert.True(File.Exists(expectedHtmlPath));
+
+        var deleteResponse = await client.DeleteAsync($"/api/sites/{siteId}");
+        Assert.Equal(HttpStatusCode.OK, deleteResponse.StatusCode);
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<HostMeDbContext>();
+            var site = await db.Sites.FirstOrDefaultAsync(s => s.Id == siteId);
+            Assert.Null(site);
+        }
+
+        Assert.False(Directory.Exists(Path.Combine(_factory.FakeS3.RootDir, s3Key)));
+    }
+
+    [Fact]
+    public async Task DeleteSite_WithValidIdButNotOwner_ShouldReturnForbidden()
+    {
+        var tempSourceDir = Path.Combine(Path.GetTempPath(), "source_" + Guid.NewGuid());
+        Directory.CreateDirectory(tempSourceDir);
+        File.WriteAllText(Path.Combine(tempSourceDir, "index.html"), "<h1>Owner Site</h1>");
+        var tempZipPath = Path.Combine(Path.GetTempPath(), "site_" + Guid.NewGuid() + ".zip");
+        ZipFile.CreateFromDirectory(tempSourceDir, tempZipPath);
+        Directory.Delete(tempSourceDir, true);
+
+        var client = _factory.CreateClient();
+
+        var ownerEmail = $"owner_{Guid.NewGuid()}@example.com";
+        await client.PostAsJsonAsync("/api/auth/register", new RegisterRequest
+        {
+            Username = "owner",
+            Email = ownerEmail,
+            Password = "password123"
+        });
+        var loginOwner = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest
+        {
+            Email = ownerEmail,
+            Password = "password123"
+        });
+        var tokenOwner = (await loginOwner.Content.ReadFromJsonAsync<ApiResponse<LoginResponse>>())!.Data!.Token;
+
+        var thiefEmail = $"thief_{Guid.NewGuid()}@example.com";
+        await client.PostAsJsonAsync("/api/auth/register", new RegisterRequest
+        {
+            Username = "thief",
+            Email = thiefEmail,
+            Password = "password123"
+        });
+        var loginThief = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest
+        {
+            Email = thiefEmail,
+            Password = "password123"
+        });
+        var tokenThief = (await loginThief.Content.ReadFromJsonAsync<ApiResponse<LoginResponse>>())!.Data!.Token;
+
+        Guid siteId;
+        using (var requestContent = new MultipartFormDataContent())
+        {
+            using var fileStream = File.OpenRead(tempZipPath);
+            var streamContent = new StreamContent(fileStream);
+            streamContent.Headers.ContentType = new MediaTypeHeaderValue("application/zip");
+            requestContent.Add(streamContent, "File", "site.zip");
+            requestContent.Add(new StringContent("OwnerSite"), "Name");
+
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenOwner);
+            var uploadResponse = await client.PostAsync("/api/sites/upload", requestContent);
+            siteId = (await uploadResponse.Content.ReadFromJsonAsync<ApiResponse<SiteResponse>>())!.Data!.Id;
+        }
+
+        File.Delete(tempZipPath);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenThief);
+        var deleteResponse = await client.DeleteAsync($"/api/sites/{siteId}");
+        Assert.Equal(HttpStatusCode.Forbidden, deleteResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteSite_WithNonExistentId_ShouldReturnNotFound()
+    {
+        var client = _factory.CreateClient();
+
+        var email = $"user_{Guid.NewGuid()}@example.com";
+        await client.PostAsJsonAsync("/api/auth/register", new RegisterRequest
+        {
+            Username = "user",
+            Email = email,
+            Password = "password123"
+        });
+        var loginResponse = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest
+        {
+            Email = email,
+            Password = "password123"
+        });
+        var token = (await loginResponse.Content.ReadFromJsonAsync<ApiResponse<LoginResponse>>())!.Data!.Token;
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var deleteResponse = await client.DeleteAsync($"/api/sites/{Guid.NewGuid()}");
+        Assert.Equal(HttpStatusCode.NotFound, deleteResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteSite_WhenUnauthenticated_ReturnsUnauthorized()
+    {
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = null;
+
+        var response = await client.DeleteAsync($"/api/sites/{Guid.NewGuid()}");
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
 }

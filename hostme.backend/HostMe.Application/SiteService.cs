@@ -66,6 +66,25 @@ public class SiteService : ISiteService
         return sites.Select(s => new SiteDto(s.Id, s.UserId, s.Name, s.Url, s.CreatedAt)).ToList();
     }
 
+    public async Task DeleteSiteAsync(Guid userId, Guid siteId, CancellationToken cancellationToken = default)
+    {
+        var site = await _siteRepository.GetByIdAsync(siteId, cancellationToken);
+        if (site is null)
+        {
+            throw new KeyNotFoundException("Site not found.");
+        }
+
+        if (site.UserId != userId)
+        {
+            throw new UnauthorizedAccessException("You do not have permission to delete this site.");
+        }
+
+        await _s3Service.DeleteFolderAsync(site.S3Key, cancellationToken);
+        
+        _siteRepository.Delete(site);
+        await _siteRepository.SaveChangesAsync(cancellationToken);
+    }
+
     private static void ExtractZip(Stream zipStream, string destinationDir)
     {
         using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read);

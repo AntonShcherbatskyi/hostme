@@ -68,6 +68,23 @@ public class SitesController : ControllerBase
         return Ok(ApiResponse<List<SiteResponse>>.Success(response));
     }
 
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        Guid userId;
+        try
+        {
+            userId = GetUserId();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(ApiResponse.Failure(ex.Message));
+        }
+
+        await _siteService.DeleteSiteAsync(userId, id, cancellationToken);
+        return Ok(ApiResponse.Ok());
+    }
+
     private Guid GetUserId()
     {
         var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 

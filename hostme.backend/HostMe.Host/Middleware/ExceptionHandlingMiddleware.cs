@@ -46,6 +46,14 @@ public class ExceptionHandlingMiddleware
                 statusCode = HttpStatusCode.Conflict;
                 errors.Add(invEx.Message);
                 break;
+            case KeyNotFoundException knfEx:
+                statusCode = HttpStatusCode.NotFound;
+                errors.Add(knfEx.Message);
+                break;
+            case UnauthorizedAccessException unAuthEx:
+                statusCode = HttpStatusCode.Forbidden;
+                errors.Add(unAuthEx.Message);
+                break;
             default:
                 statusCode = HttpStatusCode.InternalServerError;
                 errors.Add(ErrorMessages.General.UnexpectedError + exception.Message);

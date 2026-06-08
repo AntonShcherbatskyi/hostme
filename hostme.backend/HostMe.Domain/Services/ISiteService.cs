@@ -6,4 +6,5 @@ public interface ISiteService
 {
     Task<SiteDto> UploadSiteAsync(Guid userId, string name, Stream zipStream, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<SiteDto>> GetUserSitesAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task DeleteSiteAsync(Guid userId, Guid siteId, CancellationToken cancellationToken = default);
 }
