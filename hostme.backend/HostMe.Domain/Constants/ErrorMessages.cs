@@ -31,5 +31,8 @@ public static class ErrorMessages
     public static class Site
     {
         public const string ContentTypeZIPSupported = "Only ZIP files are supported";
+        public const string NotFound = "Site not found.";
+        public const string Forbidden = "You do not have permission to delete this site.";
+        public const string UserNotFound = "User not found.";
     }
 }
