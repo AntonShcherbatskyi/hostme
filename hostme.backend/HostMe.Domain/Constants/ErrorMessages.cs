@@ -34,5 +34,7 @@ public static class ErrorMessages
         public const string NotFound = "Site not found.";
         public const string Forbidden = "You do not have permission to delete this site.";
         public const string UserNotFound = "User not found.";
+        public const string MissingIndexHtml = "The ZIP must contain an index.html file at the root.";
+        public const string DisallowedFileType = "The ZIP contains a file with a disallowed extension: {0}. Only HTML, CSS, JS, JSON, and image files are allowed.";
     }
 }

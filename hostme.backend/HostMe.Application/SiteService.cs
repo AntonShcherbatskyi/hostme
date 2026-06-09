@@ -37,6 +37,8 @@ public class SiteService : ISiteService
         ZipExtractor.RemoveMacOsMetadata(tempDir.Path);
         var uploadDir = ZipExtractor.ResolveUploadRoot(tempDir.Path);
 
+        SiteFileValidator.Validate(uploadDir);
+
         var slug    = SlugHelper.Slugify(name);
         var email   = user.Email.ToLowerInvariant().Trim();
         var s3Key   = $"sites/{email}/{slug}";
