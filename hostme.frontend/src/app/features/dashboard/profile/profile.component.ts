@@ -1,11 +1,12 @@
 import { Component, computed, inject } from '@angular/core';
 import { AuthService } from '../../../core/services/auth.service';
 import { DatePipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [DatePipe],
+  imports: [DatePipe, RouterLink],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.css',
 })

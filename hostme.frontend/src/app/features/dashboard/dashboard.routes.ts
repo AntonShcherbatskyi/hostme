@@ -12,6 +12,11 @@ export const dashboardRoutes: Routes = [
         loadComponent: () =>
           import('./profile/profile.component').then((m) => m.ProfileComponent),
       },
+      {
+        path: 'sites',
+        loadComponent: () =>
+          import('./sites/sites.component').then((m) => m.SitesComponent),
+      },
     ],
   },
 ];
