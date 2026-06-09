@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { AuthService } from '../../../core/services/auth.service';
 import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
@@ -13,6 +13,8 @@ import { RouterLink } from '@angular/router';
 export class ProfileComponent {
   private readonly authService = inject(AuthService);
   readonly user = this.authService.currentUser;
+  readonly copied = signal(false);
+
   readonly initials = computed(() => {
     const u = this.authService.currentUser();
     if (!u) return '';
@@ -23,4 +25,11 @@ export class ProfileComponent {
       .join('')
       .toUpperCase();
   });
+
+  copyAccountId(id: string): void {
+    navigator.clipboard.writeText(id).then(() => {
+      this.copied.set(true);
+      setTimeout(() => this.copied.set(false), 2000);
+    });
+  }
 }
