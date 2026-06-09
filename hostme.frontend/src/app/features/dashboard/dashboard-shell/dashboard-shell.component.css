@@ -5,52 +5,68 @@
 }
 
 .sidebar {
-  width: 60px;
+  width: 200px;
   flex-shrink: 0;
   background: var(--color-bg-sidebar);
   border-right: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
-  align-items: center;
   position: sticky;
   top: 0;
   height: 100vh;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: 1rem 0;
-  gap: 0;
 }
 
 .sidebar__logo {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  margin-bottom: 1.5rem;
+  gap: 0.625rem;
+  padding: 0 1rem;
+  margin-bottom: 1.75rem;
   flex-shrink: 0;
+}
+
+.sidebar__brand-name {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  letter-spacing: -0.015em;
 }
 
 .sidebar__nav {
   flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  width: 100%;
+  gap: 0.125rem;
+  padding: 0 0.75rem;
+}
+
+.sidebar__section-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
   padding: 0 0.5rem;
+  margin-bottom: 0.25rem;
+  margin-top: 0.25rem;
 }
 
 .sidebar__nav-item {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
+  gap: 0.625rem;
+  padding: 0.5rem 0.625rem;
   border-radius: var(--radius-md);
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   cursor: pointer;
   transition: background var(--transition-fast), color var(--transition-fast);
-  position: relative;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .sidebar__nav-item:hover:not(.sidebar__nav-item--disabled) {
@@ -69,92 +85,51 @@
 }
 
 .sidebar__nav-icon {
-  width: 1.125rem;
-  height: 1.125rem;
+  width: 1rem;
+  height: 1rem;
   flex-shrink: 0;
 }
 
 .sidebar__divider {
-  width: 28px;
   height: 1px;
   background: var(--color-border);
-  margin: 0.5rem 0;
-  flex-shrink: 0;
+  margin: 0.5rem 0.75rem;
 }
 
 .sidebar__footer {
+  padding: 0 0.75rem;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  padding-top: 0.5rem;
-}
-
-.sidebar__avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: #e4e4e7;
-  color: var(--color-text-primary);
-  font-size: 0.75rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  border: 1.5px solid transparent;
-  transition: border-color var(--transition-fast);
-}
-
-.sidebar__avatar:hover {
-  border-color: var(--color-text-primary);
+  gap: 0.125rem;
 }
 
 .sidebar__logout-btn {
-  width: 36px;
-  height: 36px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  background: transparent;
+  gap: 0.625rem;
+  width: 100%;
+  padding: 0.5rem 0.625rem;
   border: none;
   border-radius: var(--radius-md);
-  color: var(--color-text-muted);
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
   cursor: pointer;
   transition: background var(--transition-fast), color var(--transition-fast);
+  text-align: left;
 }
 
 .sidebar__logout-btn:hover {
-  background: #fee2e2;
+  background: #fef2f2;
   color: #dc2626;
 }
 
 .sidebar__logout-btn svg {
   width: 1rem;
   height: 1rem;
-}
-
-.sidebar__nav-item::after {
-  content: attr(data-tooltip);
-  position: absolute;
-  left: calc(100% + 10px);
-  top: 50%;
-  transform: translateY(-50%);
-  background: #111111;
-  color: #ffffff;
-  font-size: 0.75rem;
-  font-weight: 500;
-  padding: 0.3rem 0.65rem;
-  border-radius: var(--radius-sm);
-  white-space: nowrap;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity var(--transition-fast);
-  z-index: 100;
-}
-
-.sidebar__nav-item:hover::after {
-  opacity: 1;
+  flex-shrink: 0;
 }
 
 .crm-body {
@@ -166,23 +141,14 @@
 }
 
 .topbar {
-  height: 56px;
+  height: 52px;
   background: var(--color-bg-card);
   border-bottom: 1px solid var(--color-border);
   display: flex;
   align-items: center;
   padding: 0 1.5rem;
-  gap: 1.5rem;
+  gap: 0.25rem;
   flex-shrink: 0;
-}
-
-.topbar__brand {
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: var(--color-text-primary);
-  letter-spacing: -0.015em;
-  margin-right: 0.5rem;
-  white-space: nowrap;
 }
 
 .topbar__nav {
@@ -254,8 +220,8 @@
 }
 
 .topbar__user-avatar {
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   background: #e4e4e7;
   color: var(--color-text-primary);

@@ -137,16 +137,12 @@
   cursor: pointer;
   transition: border-color var(--transition-fast), background var(--transition-fast);
   background: #ffffff;
+  text-decoration: none;
 }
 
-.quick-action:not(.quick-action--disabled):hover {
+.quick-action:hover {
   border-color: #000000;
   background: #fafafa;
-}
-
-.quick-action--disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
 }
 
 .quick-action__icon {
@@ -183,6 +179,13 @@
 .quick-action__desc {
   font-size: 0.8125rem;
   color: var(--color-text-muted);
+}
+
+.quick-action__arrow {
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
 }
 
 @media (max-width: 860px) {

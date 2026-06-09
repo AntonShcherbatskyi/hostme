@@ -1,70 +1,73 @@
 <div class="crm-layout">
 
-  <!-- Narrow icon-only sidebar -->
+  <!-- Sidebar with labels -->
   <aside class="sidebar">
-    <!-- Logo mark -->
-    <div class="sidebar__logo" aria-label="HostMe">
-      <svg width="30" height="30" viewBox="0 0 36 36" fill="none">
+    <div class="sidebar__logo">
+      <svg width="28" height="28" viewBox="0 0 36 36" fill="none">
         <rect width="36" height="36" rx="9" fill="#000000"/>
         <path d="M18 7L28 12V19C28 24.523 23.523 29.5 18 31C12.477 29.5 8 24.523 8 19V12L18 7Z"
           fill="#ffffff" fill-opacity="0.92"/>
       </svg>
+      <span class="sidebar__brand-name">HostMe</span>
     </div>
 
-    <nav class="sidebar__nav" role="navigation" aria-label="Side navigation">
-      <!-- Profile -->
+    <nav class="sidebar__nav" role="navigation" aria-label="Main navigation">
+      <span class="sidebar__section-label">Menu</span>
+
       <a
         routerLink="/dashboard/profile"
         routerLinkActive="sidebar__nav-item--active"
         class="sidebar__nav-item"
-        data-tooltip="My Profile"
-        id="side-nav-profile"
+        id="nav-profile"
       >
         <svg class="sidebar__nav-icon" viewBox="0 0 20 20" fill="currentColor">
           <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
         </svg>
+        Profile
       </a>
 
-      <div class="sidebar__divider"></div>
-
-      <!-- Sites (future) -->
-      <a class="sidebar__nav-item sidebar__nav-item--disabled" data-tooltip="My Sites (Step 2)" id="side-nav-sites">
+      <a
+        routerLink="/dashboard/sites"
+        routerLinkActive="sidebar__nav-item--active"
+        class="sidebar__nav-item"
+        id="nav-sites"
+      >
         <svg class="sidebar__nav-icon" viewBox="0 0 20 20" fill="currentColor">
           <path fill-rule="evenodd" d="M4.083 9h1.946c.089-1.546.383-2.97.837-4.118A6.004 6.004 0 004.083 9zM10 2a8 8 0 100 16 8 8 0 000-16zm0 2c-.076 0-.232.032-.465.262-.238.234-.497.623-.737 1.182-.389.907-.673 2.142-.766 3.556h3.936c-.093-1.414-.377-2.649-.766-3.556-.24-.56-.5-.948-.737-1.182C10.232 4.032 10.076 4 10 4zm3.971 5c-.089-1.546-.383-2.97-.837-4.118A6.004 6.004 0 0115.917 9h-1.946zm-2.003 2H8.032c.093 1.414.377 2.649.766 3.556.24.56.5.948.737 1.182.233.23.389.262.465.262.076 0 .232-.032.465-.262.238-.234.498-.623.737-1.182.389-.907.673-2.142.766-3.556zm1.166 4.118c.454-1.147.748-2.572.837-4.118h1.946a6.004 6.004 0 01-2.783 4.118zm-6.268 0C6.412 13.97 6.118 12.546 6.03 11H4.083a6.004 6.004 0 002.783 4.118z" clip-rule="evenodd"/>
         </svg>
+        My Sites
       </a>
 
-      <!-- Manage (future) -->
-      <a class="sidebar__nav-item sidebar__nav-item--disabled" data-tooltip="Manage (Step 3)" id="side-nav-manage">
+      <a class="sidebar__nav-item sidebar__nav-item--disabled" id="nav-manage" aria-disabled="true">
         <svg class="sidebar__nav-icon" viewBox="0 0 20 20" fill="currentColor">
           <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
         </svg>
+        Manage
       </a>
     </nav>
 
-    <!-- Footer: logout -->
+    <div class="sidebar__divider"></div>
+
     <div class="sidebar__footer">
       <button
         class="sidebar__logout-btn"
         (click)="logout()"
         id="btn-logout"
-        title="Sign out"
         aria-label="Sign out"
       >
         <svg viewBox="0 0 20 20" fill="currentColor">
           <path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd"/>
         </svg>
+        Sign out
       </button>
     </div>
   </aside>
 
-  <!-- Main body with top bar + content -->
+  <!-- Main content area -->
   <div class="crm-body">
 
     <!-- Top navigation bar -->
     <header class="topbar">
-      <span class="topbar__brand">HostMe</span>
-
       <nav class="topbar__nav" role="navigation" aria-label="Top navigation">
         <a
           routerLink="/dashboard/profile"
@@ -73,7 +76,13 @@
           id="top-nav-profile"
         >Profile</a>
 
-        <a class="topbar__nav-link topbar__nav-link--disabled" id="top-nav-sites">My Sites</a>
+        <a
+          routerLink="/dashboard/sites"
+          routerLinkActive="topbar__nav-link--active"
+          class="topbar__nav-link"
+          id="top-nav-sites"
+        >My Sites</a>
+
         <a class="topbar__nav-link topbar__nav-link--disabled" id="top-nav-manage">Manage</a>
       </nav>
 
@@ -89,7 +98,6 @@
       </div>
     </header>
 
-    <!-- Route outlet -->
     <main class="crm-main">
       <router-outlet />
     </main>
