@@ -51,7 +51,7 @@ export class SitesComponent implements OnInit {
   copiedId = signal<string | null>(null);
 
   readonly nameControl = this.uploadForm.get('name')!;
-  readonly nameLength = computed(() => (this.nameControl.value as string)?.length ?? 0);
+  nameLength = signal(0);
 
   toggleUploadPanel(): void {
     this.isUploadPanelOpen.update((v) => !v);
@@ -59,7 +59,9 @@ export class SitesComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadSites();
-    this.nameControl.valueChanges.subscribe(() => {});
+    this.nameControl.valueChanges.subscribe((val) => {
+      this.nameLength.set(val?.length ?? 0);
+    });
   }
 
   loadSites(): void {
