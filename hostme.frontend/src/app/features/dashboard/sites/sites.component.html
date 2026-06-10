@@ -50,7 +50,7 @@
               <div class="form-group" [class.form-group--error]="nameControl.invalid && nameControl.touched">
                 <div class="form-label-row">
                   <label class="form-label" for="site-name">Site name</label>
-                  <span class="char-count" [class.char-count--warn]="nameLength() > NAME_MAX - 10">
+                  <span class="char-count" [class.char-count--warn]="nameLength() >= NAME_MAX">
                     {{ nameLength() }}/{{ NAME_MAX }}
                   </span>
                 </div>
