@@ -1,3 +1,4 @@
+using HostMe.Domain.Constants;
 using HostMe.Domain.Services;
 
 namespace HostMe.Infrastructure.Storage;
@@ -8,16 +9,20 @@ public class FileSystemS3Service : IS3Service
 
     public FileSystemS3Service()
     {
-        RootDir = Path.Combine(Path.GetTempPath(), "hostme_fake_s3_" + Guid.NewGuid());
+        RootDir = Path.Combine(
+            Path.GetTempPath(),
+            StorageConstants.FakeS3DirPrefix + Guid.NewGuid());
+
         Directory.CreateDirectory(RootDir);
     }
 
-    public Task UploadFolderAsync(string localPath, string s3Prefix, CancellationToken cancellationToken = default)
+    public Task UploadFolderAsync(
+        string localPath, string s3Prefix, CancellationToken cancellationToken = default)
     {
         var targetDir = Path.Combine(RootDir, s3Prefix);
         Directory.CreateDirectory(targetDir);
 
-        var files = Directory.GetFiles(localPath, "*", SearchOption.AllDirectories);
+        var files = Directory.GetFiles(localPath, StorageConstants.AllFilesGlob, SearchOption.AllDirectories);
 
         foreach (var file in files)
         {
@@ -30,18 +35,19 @@ public class FileSystemS3Service : IS3Service
         return Task.CompletedTask;
     }
 
-    public Task DeleteFolderAsync(string s3Prefix, CancellationToken cancellationToken = default)
+    public Task DeleteFolderAsync(
+        string s3Prefix, CancellationToken cancellationToken = default)
     {
         var targetDir = Path.Combine(RootDir, s3Prefix);
         if (Directory.Exists(targetDir))
-        {
             Directory.Delete(targetDir, recursive: true);
-        }
+
         return Task.CompletedTask;
     }
 
     public string GetSiteUrl(string s3Key)
     {
-        return $"file://{Path.Combine(RootDir, s3Key).Replace("\\", "/")}/index.html";
+        var path = Path.Combine(RootDir, s3Key).Replace("\\", "/");
+        return $"file://{path}/{StorageConstants.IndexHtmlFile}";
     }
 }

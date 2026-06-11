@@ -2,7 +2,9 @@ using Amazon;
 using Amazon.Runtime;
 using Amazon.S3;
 using Amazon.S3.Model;
+using HostMe.Domain.Constants;
 using HostMe.Domain.Services;
+using HostMe.Infrastructure.Constants;
 using HostMe.Infrastructure.Options;
 using Microsoft.Extensions.Options;
 
@@ -39,19 +41,21 @@ public class S3Service : IS3Service
         }
     }
 
-    public async Task UploadFolderAsync(string localPath, string s3Prefix, CancellationToken cancellationToken = default)
+    public async Task UploadFolderAsync(
+        string localPath, string s3Prefix, CancellationToken cancellationToken = default)
     {
         if (!Directory.Exists(localPath))
-        {
-            throw new DirectoryNotFoundException($"Local directory not found: {localPath}");
-        }
+            throw new DirectoryNotFoundException(
+                string.Format(StorageConstants.LocalDirectoryNotFound, localPath));
 
-        var files = Directory.GetFiles(localPath, "*", SearchOption.AllDirectories);
+        var files = Directory.GetFiles(localPath, StorageConstants.AllFilesGlob, SearchOption.AllDirectories);
 
         foreach (var file in files)
         {
             var relativePath = Path.GetRelativePath(localPath, file).Replace("\\", "/");
-            var s3Key = string.IsNullOrEmpty(s3Prefix) ? relativePath : $"{s3Prefix.TrimEnd('/')}/{relativePath}";
+            var s3Key = string.IsNullOrEmpty(s3Prefix)
+                ? relativePath
+                : $"{s3Prefix.TrimEnd('/')}/{relativePath}";
 
             var putRequest = new PutObjectRequest
             {
@@ -65,7 +69,8 @@ public class S3Service : IS3Service
         }
     }
 
-    public async Task DeleteFolderAsync(string s3Prefix, CancellationToken cancellationToken = default)
+    public async Task DeleteFolderAsync(
+        string s3Prefix, CancellationToken cancellationToken = default)
     {
         var listRequest = new ListObjectsV2Request
         {
@@ -83,7 +88,9 @@ public class S3Service : IS3Service
                 var deleteRequest = new DeleteObjectsRequest
                 {
                     BucketName = _options.BucketName,
-                    Objects = listResponse.S3Objects.Select(o => new KeyVersion { Key = o.Key }).ToList()
+                    Objects = listResponse.S3Objects
+                        .Select(o => new KeyVersion { Key = o.Key })
+                        .ToList()
                 };
 
                 await _s3Client.DeleteObjectsAsync(deleteRequest, cancellationToken);
@@ -96,34 +103,32 @@ public class S3Service : IS3Service
     public string GetSiteUrl(string s3Key)
     {
         if (!string.IsNullOrEmpty(_options.ServiceUrl))
-        {
-            return $"{_options.ServiceUrl.TrimEnd('/')}/{_options.BucketName}/{s3Key}/index.html";
-        }
+            return $"{_options.ServiceUrl.TrimEnd('/')}/{_options.BucketName}/{s3Key}/{StorageConstants.IndexHtmlFile}";
 
-        var region = _options.Region ?? "us-east-1";
-        return $"https://{_options.BucketName}.s3.{region}.amazonaws.com/{s3Key}/index.html";
+        var region = _options.Region ?? StorageConstants.DefaultAwsRegion;
+        return string.Format(StorageConstants.AwsS3UrlTemplate, _options.BucketName, region, s3Key);
     }
 
     private static string GetContentType(string filePath)
     {
-        var extension = Path.GetExtension(filePath).ToLowerInvariant();
-        return extension switch
+        var ext = Path.GetExtension(filePath).ToLowerInvariant();
+        return ext switch
         {
-            ".html" or ".htm" => "text/html",
-            ".css" => "text/css",
-            ".js" => "application/javascript",
-            ".json" => "application/json",
-            ".png" => "image/png",
-            ".jpg" or ".jpeg" => "image/jpeg",
-            ".gif" => "image/gif",
-            ".svg" => "image/svg+xml",
-            ".txt" => "text/plain",
-            ".ico" => "image/x-icon",
-            ".woff" => "font/woff",
-            ".woff2" => "font/woff2",
-            ".ttf" => "font/ttf",
-            ".eot" => "application/vnd.ms-fontobject",
-            _ => "application/octet-stream"
+            ".html" or ".htm" => MimeTypes.Html,
+            ".css"            => MimeTypes.Css,
+            ".js"             => MimeTypes.JavaScript,
+            ".json"           => MimeTypes.Json,
+            ".png"            => MimeTypes.Png,
+            ".jpg" or ".jpeg" => MimeTypes.Jpeg,
+            ".gif"            => MimeTypes.Gif,
+            ".svg"            => MimeTypes.Svg,
+            ".txt"            => MimeTypes.Text,
+            ".ico"            => MimeTypes.Ico,
+            ".woff"           => MimeTypes.Woff,
+            ".woff2"          => MimeTypes.Woff2,
+            ".ttf"            => MimeTypes.Ttf,
+            ".eot"            => MimeTypes.Eot,
+            _                 => MimeTypes.OctetStream
         };
     }
 }

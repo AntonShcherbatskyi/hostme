@@ -24,10 +24,11 @@ public static class ErrorMessages
 
     public static class General
     {
-        public const string UnexpectedError = "An unexpected error occurred: ";
+        public const string UnexpectedError = "An unexpected error occurred.";
+        public const string UnexpectedErrorWithDetail = "An unexpected error occurred: ";
         public const string DatabaseConnectionFailed = "Database connection failed.";
     }
-    
+
     public static class Site
     {
         public const string ContentTypeZIPSupported = "Only ZIP files are supported";
@@ -35,6 +36,25 @@ public static class ErrorMessages
         public const string Forbidden = "You do not have permission to delete this site.";
         public const string UserNotFound = "User not found.";
         public const string MissingIndexHtml = "The ZIP must contain an index.html file at the root.";
-        public const string DisallowedFileType = "The ZIP contains a file with a disallowed extension: {0}. Only HTML, CSS, JS, JSON, and image files are allowed.";
+        public const string DisallowedFileType =
+            "The ZIP contains a file with a disallowed extension: {0}. Only HTML, CSS, JS, JSON, and image files are allowed.";
+        public const string ZipSlipDetected = "ZipSlip detected: {0}";
+    }
+    
+    public static class Validation
+    {
+        public const string FileRequired = "ZIP file is required.";
+        public const string SiteNameRequired = "Site name is required.";
+        public const string SiteNameLength = "Site name cannot exceed 200 characters.";
+
+        public const string JwtSecretRequired = "JWT Secret is required.";
+        public const string JwtSecretMinLength = "JWT Secret must be at least 32 characters long.";
+        public const string JwtIssuerRequired = "JWT Issuer is required.";
+        public const string JwtAudienceRequired = "JWT Audience is required.";
+        public const string JwtExpiryRange = "ExpiryMinutes must be greater than 0.";
+
+        public const string DatabaseConnectionRequired =
+            "Database connection string 'DefaultConnection' is required.";
+        public const string S3BucketNameRequired = "S3 BucketName is required.";
     }
 }
