@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
 
 namespace HostMe.Host;
 
@@ -24,7 +25,7 @@ public class Program
     public static void Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
-
+        
         builder.Services.AddOptions<DatabaseOptions>()
             .BindConfiguration(DatabaseOptions.SectionName)
             .ValidateDataAnnotations()
@@ -67,8 +68,7 @@ public class Program
                     ValidateIssuerSigningKey = true,
                     ValidIssuer = jwtSettings.Issuer,
                     ValidAudience = jwtSettings.Audience,
-                    IssuerSigningKey = new SymmetricSecurityKey(
-                        Encoding.UTF8.GetBytes(jwtSettings.Secret))
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Secret))
                 };
             });
 
@@ -80,11 +80,43 @@ public class Program
         .AddJwtBearer();
 
         builder.Services.AddAuthorization();
+        
+        builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddSwaggerGen(options =>
+        {
+            options.SwaggerDoc("v1", new OpenApiInfo
+            {
+                Title = "HostMe API",
+                Version = "v1",
+                Description = "HostMe Backend API services"
+            });
 
-        builder.Services.AddConfiguredCors(builder.Configuration);
+            options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+            {
+                Name = "Authorization",
+                Type = SecuritySchemeType.Http,
+                Scheme = "Bearer",
+                BearerFormat = "JWT",
+                In = ParameterLocation.Header,
+                Description = "Enter JWT token"
+            });
 
-        if (builder.Environment.IsDevelopment())
-            builder.Services.AddSwaggerWithAuth();
+            options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+            {
+                [new OpenApiSecuritySchemeReference("Bearer", document)] = new List<string>()
+            });
+        });
+
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy("AllowFrontend", policy =>
+            {
+                policy
+                    .WithOrigins("http://localhost:4200")
+                    .AllowAnyHeader()
+                    .AllowAnyMethod();
+            });
+        });
 
         builder.Services.AddControllers()
             .ConfigureApiBehaviorOptions(options =>
@@ -96,15 +128,25 @@ public class Program
                         .Select(e => e.ErrorMessage)
                         .ToList();
 
-                    return new BadRequestObjectResult(ApiResponse<object>.Failure(errors));
+                    var response = ApiResponse<object>.Failure(errors);
+                    return new BadRequestObjectResult(response);
                 };
             });
 
         var app = builder.Build();
 
         app.UseMiddleware<ExceptionHandlingMiddleware>();
-        app.UseSwaggerIfDevelopment();
-        app.UseCors(CorsExtensions.PolicyName);
+
+        if (app.Environment.IsDevelopment())
+        {
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
+            {
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "HostMe API v1");
+            });
+        }
+
+        app.UseCors("AllowFrontend");
         app.UseAuthentication();
         app.UseAuthorization();
         app.MapControllers();

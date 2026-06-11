@@ -39,10 +39,10 @@ public class SiteService : ISiteService
 
         SiteFileValidator.Validate(uploadDir);
 
-        var slug  = SlugHelper.Slugify(name);
-        var email = user.Email.ToLowerInvariant().Trim();
-        var s3Key = $"{StorageConstants.SiteKeyPrefix}/{email}/{slug}";
-        var url   = _s3Service.GetSiteUrl(s3Key);
+        var slug    = SlugHelper.Slugify(name);
+        var email   = user.Email.ToLowerInvariant().Trim();
+        var s3Key   = $"sites/{email}/{slug}";
+        var url     = _s3Service.GetSiteUrl(s3Key);
 
         await _s3Service.UploadFolderAsync(uploadDir, s3Key, cancellationToken);
 
@@ -83,7 +83,7 @@ public class SiteService : ISiteService
         _siteRepository.Delete(site);
         await _siteRepository.SaveChangesAsync(cancellationToken);
     }
-
+    
     private static SiteDto ToDto(Site site) =>
         new(site.Id, site.UserId, site.Name, site.Url, site.CreatedAt);
 }

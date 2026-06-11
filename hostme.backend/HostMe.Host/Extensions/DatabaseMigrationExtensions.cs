@@ -1,4 +1,4 @@
-using HostMe.Domain.Constants;
+using System.Diagnostics;
 using HostMe.Persistance;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,33 +9,32 @@ public static class DatabaseMigrationExtensions
     private const int MaxRetries = 5;
     private static readonly TimeSpan RetryDelay = TimeSpan.FromSeconds(2);
 
-    public static WebApplication ApplyMigrations(this WebApplication app)
+    public static WebApplication ApplyMigrations(
+        this WebApplication app,
+        CancellationToken cancellationToken = default)
     {
-        if (app.Environment.IsEnvironment(AppEnvironments.Testing))
+        if (app.Environment.IsEnvironment("Testing"))
             return app;
 
         using var scope = app.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<HostMeDbContext>();
         var logger = scope.ServiceProvider
             .GetRequiredService<ILoggerFactory>()
-            .CreateLogger(LogMessages.Database.CategoryName);
+            .CreateLogger("DatabaseMigration");
 
         for (var attempt = 1; attempt <= MaxRetries; attempt++)
         {
             try
             {
                 db.Database.Migrate();
-                logger.LogInformation(LogMessages.Database.MigrationsApplied);
+                logger.LogInformation("Database migrations applied successfully.");
                 return app;
             }
-            catch (Exception ex)
+            catch (Exception ex) when (attempt < MaxRetries)
             {
-                if (attempt == MaxRetries)
-                    throw;
-
                 logger.LogWarning(
                     ex,
-                    LogMessages.Database.MigrationAttemptFailed,
+                    "Migration attempt {Attempt}/{MaxRetries} failed, retrying in {DelaySeconds}s...",
                     attempt,
                     MaxRetries,
                     RetryDelay.TotalSeconds);
@@ -44,6 +43,6 @@ public static class DatabaseMigrationExtensions
             }
         }
 
-        return app;
+        throw new UnreachableException();
     }
 }

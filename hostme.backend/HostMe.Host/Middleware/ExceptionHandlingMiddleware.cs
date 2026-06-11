@@ -1,5 +1,4 @@
 using System.Net;
-using System.Net.Mime;
 using System.Text.Json;
 using HostMe.Domain.Constants;
 using HostMe.Domain.Services.Models;
@@ -10,16 +9,11 @@ public class ExceptionHandlingMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<ExceptionHandlingMiddleware> _logger;
-    private readonly IHostEnvironment _environment;
 
-    public ExceptionHandlingMiddleware(
-        RequestDelegate next,
-        ILogger<ExceptionHandlingMiddleware> logger,
-        IHostEnvironment environment)
+    public ExceptionHandlingMiddleware(RequestDelegate next, ILogger<ExceptionHandlingMiddleware> logger)
     {
         _next = next;
         _logger = logger;
-        _environment = environment;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -30,17 +24,14 @@ public class ExceptionHandlingMiddleware
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, LogMessages.Http.UnhandledException);
-            await HandleExceptionAsync(context, ex, exposeDetails: _environment.IsDevelopment());
+            _logger.LogError(ex, "An unhandled exception occurred.");
+            await HandleExceptionAsync(context, ex);
         }
     }
 
-    private static async Task HandleExceptionAsync(
-        HttpContext context,
-        Exception exception,
-        bool exposeDetails)
+    private static async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
-        context.Response.ContentType = MediaTypeNames.Application.Json;
+        context.Response.ContentType = "application/json";
 
         HttpStatusCode statusCode;
         var errors = new List<string>();
@@ -51,35 +42,33 @@ public class ExceptionHandlingMiddleware
                 statusCode = HttpStatusCode.BadRequest;
                 errors.Add(argEx.Message);
                 break;
-
             case InvalidOperationException invEx:
                 statusCode = HttpStatusCode.Conflict;
                 errors.Add(invEx.Message);
                 break;
-
             case KeyNotFoundException knfEx:
                 statusCode = HttpStatusCode.NotFound;
                 errors.Add(knfEx.Message);
                 break;
-
             case UnauthorizedAccessException unAuthEx:
                 statusCode = HttpStatusCode.Forbidden;
                 errors.Add(unAuthEx.Message);
                 break;
-
             default:
                 statusCode = HttpStatusCode.InternalServerError;
-                errors.Add(exposeDetails
-                    ? ErrorMessages.General.UnexpectedErrorWithDetail + exception.Message
-                    : ErrorMessages.General.UnexpectedError);
+                errors.Add(ErrorMessages.General.UnexpectedError + exception.Message);
                 break;
         }
 
         context.Response.StatusCode = (int)statusCode;
 
         var apiResponse = ApiResponse<object>.Failure(errors);
-        var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+        var jsonOptions = new JsonSerializerOptions 
+        { 
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase 
+        };
+        var responseJson = JsonSerializer.Serialize(apiResponse, jsonOptions);
 
-        await context.Response.WriteAsync(JsonSerializer.Serialize(apiResponse, jsonOptions));
+        await context.Response.WriteAsync(responseJson);
     }
 }
