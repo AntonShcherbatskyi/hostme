@@ -9,6 +9,7 @@ using HostMe.Infrastructure.Security;
 using HostMe.Infrastructure.Storage;
 using HostMe.Persistance;
 using HostMe.Persistance.Repositories;
+using HostMe.Host.Extensions;
 using HostMe.Host.Middleware;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
@@ -149,6 +150,8 @@ public class Program
         app.UseAuthentication();
         app.UseAuthorization();
         app.MapControllers();
+
+        app.ApplyMigrations();
         app.Run();
     }
 }
