@@ -25,7 +25,8 @@ public class HostMeWebApplicationFactory : WebApplicationFactory<Program>
                 { "Jwt:Issuer", "HostMe" },
                 { "Jwt:Audience", "HostMe" },
                 { "Jwt:ExpiryMinutes", "60" },
-                { "S3:BucketName", "hostme-test-bucket" }
+                { "S3:BucketName", "hostme-test-bucket" },
+                { "ConnectionStrings:DefaultConnection", "Server=dummy;Database=dummy" }
             });
         });
 
