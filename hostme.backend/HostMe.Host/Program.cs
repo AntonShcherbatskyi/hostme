@@ -24,7 +24,7 @@ public class Program
     public static void Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
-
+        
         builder.Services.AddOptions<DatabaseOptions>()
             .BindConfiguration(DatabaseOptions.SectionName)
             .ValidateDataAnnotations()
@@ -99,7 +99,9 @@ public class Program
                     return new BadRequestObjectResult(ApiResponse<object>.Failure(errors));
                 };
             });
-
+        
+        builder.AddParameterStore();
+        
         var app = builder.Build();
 
         app.UseMiddleware<ExceptionHandlingMiddleware>();
