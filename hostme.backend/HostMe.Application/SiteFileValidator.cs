@@ -1,3 +1,4 @@
+using HostMe.Application.Constants;
 using HostMe.Domain.Constants;
 
 namespace HostMe.Application;
@@ -15,14 +16,15 @@ public static class SiteFileValidator
         ".woff", ".woff2", ".ttf", ".eot",
         ".map",
     };
-    
+
     public static void Validate(string uploadDir)
     {
-        var indexHtml = Path.Combine(uploadDir, "index.html");
+        var indexHtml = Path.Combine(uploadDir, StorageConstants.IndexHtmlFile);
         if (!File.Exists(indexHtml))
             throw new ArgumentException(ErrorMessages.Site.MissingIndexHtml);
 
-        foreach (var file in Directory.EnumerateFiles(uploadDir, "*", SearchOption.AllDirectories))
+        foreach (var file in Directory.EnumerateFiles(
+            uploadDir, StorageConstants.AllFilesGlob, SearchOption.AllDirectories))
         {
             var ext = Path.GetExtension(file);
             if (!AllowedExtensions.Contains(ext))

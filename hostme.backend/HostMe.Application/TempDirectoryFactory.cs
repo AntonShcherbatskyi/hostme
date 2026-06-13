@@ -1,3 +1,4 @@
+using HostMe.Domain.Constants;
 using HostMe.Domain.Services;
 
 namespace HostMe.Application;
@@ -8,7 +9,10 @@ public sealed class TempDirectoryScope : ITempDirectory
 
     public TempDirectoryScope()
     {
-        Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "hostme_" + Guid.NewGuid());
+        Path = System.IO.Path.Combine(
+            System.IO.Path.GetTempPath(),
+            StorageConstants.TempDirPrefix + Guid.NewGuid());
+
         Directory.CreateDirectory(Path);
     }
 

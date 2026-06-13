@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using HostMe.Domain.Constants;
 
 namespace HostMe.Infrastructure.Options;
 
@@ -6,7 +7,7 @@ public class S3Options
 {
     public const string SectionName = "S3";
 
-    [Required(ErrorMessage = "S3 BucketName is required.")]
+    [Required(ErrorMessage = ErrorMessages.Validation.S3BucketNameRequired)]
     public string BucketName { get; set; } = string.Empty;
 
     public string? AccessKey { get; set; }
