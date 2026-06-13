@@ -78,10 +78,10 @@ public class SiteService : ISiteService
         if (site.UserId != userId)
             throw new UnauthorizedAccessException(ErrorMessages.Site.Forbidden);
 
-        await _s3Service.DeleteFolderAsync(site.S3Key, cancellationToken);
-
         _siteRepository.Delete(site);
         await _siteRepository.SaveChangesAsync(cancellationToken);
+
+        await _s3Service.DeleteFolderAsync(site.S3Key, cancellationToken);
     }
 
     private static SiteDto ToDto(Site site) =>
