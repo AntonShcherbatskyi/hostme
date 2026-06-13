@@ -6,6 +6,7 @@ using HostMe.Domain.Constants;
 using HostMe.Domain.Services;
 using HostMe.Infrastructure.Constants;
 using HostMe.Infrastructure.Options;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace HostMe.Infrastructure.Storage;
@@ -14,9 +15,11 @@ public class S3Service : IS3Service
 {
     private readonly IAmazonS3 _s3Client;
     private readonly S3Options _options;
+    private readonly ILogger<S3Service> _logger;
 
-    public S3Service(IOptions<S3Options> options)
+    public S3Service(IOptions<S3Options> options, ILogger<S3Service> logger)
     {
+        _logger = logger;
         _options = options.Value;
 
         var config = new AmazonS3Config();
@@ -78,26 +81,34 @@ public class S3Service : IS3Service
             Prefix = s3Prefix
         };
 
-        ListObjectsV2Response listResponse;
-        do
+        try
         {
-            listResponse = await _s3Client.ListObjectsV2Async(listRequest, cancellationToken);
-
-            if (listResponse.S3Objects.Count > 0)
+            ListObjectsV2Response listResponse;
+            do
             {
-                var deleteRequest = new DeleteObjectsRequest
+                listResponse = await _s3Client.ListObjectsV2Async(listRequest, cancellationToken);
+
+                if (listResponse.S3Objects.Count > 0)
                 {
-                    BucketName = _options.BucketName,
-                    Objects = listResponse.S3Objects
-                        .Select(o => new KeyVersion { Key = o.Key })
-                        .ToList()
-                };
+                    var deleteRequest = new DeleteObjectsRequest
+                    {
+                        BucketName = _options.BucketName,
+                        Objects = listResponse.S3Objects
+                            .Select(o => new KeyVersion { Key = o.Key })
+                            .ToList()
+                    };
 
-                await _s3Client.DeleteObjectsAsync(deleteRequest, cancellationToken);
-            }
+                    await _s3Client.DeleteObjectsAsync(deleteRequest, cancellationToken);
+                }
 
-            listRequest.ContinuationToken = listResponse.NextContinuationToken;
-        } while (listResponse.IsTruncated == true);
+                listRequest.ContinuationToken = listResponse.NextContinuationToken;
+            } while (listResponse.IsTruncated == true);
+        }
+        catch (AmazonS3Exception ex) when (ex.ErrorCode == S3ErrorCodes.NoSuchBucket)
+        {
+            _logger.LogWarning(
+                "S3 bucket '{BucketName}' does not exist while deleting prefix '{Prefix}'. " + _options.BucketName, s3Prefix);
+        }
     }
 
     public string GetSiteUrl(string s3Key)
