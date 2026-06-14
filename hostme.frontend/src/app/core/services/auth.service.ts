@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, throwError } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
-import { environment } from '../../../environments/environment';
+import { AppConfigService } from './app-config.service';
 import {
   ApiResponse,
   LoginRequest,
@@ -27,11 +27,11 @@ export class AuthService {
   readonly currentUser = this._currentUser.asReadonly();
   readonly isAuthenticated = this._isAuthenticated;
 
-  constructor(private http: HttpClient, private router: Router) {}
+  constructor(private http: HttpClient, private router: Router, private config: AppConfigService) {}
 
   login(request: LoginRequest): Observable<ApiResponse<LoginResponse>> {
     return this.http
-      .post<ApiResponse<LoginResponse>>(`${environment.apiUrl}/auth/login`, request)
+      .post<ApiResponse<LoginResponse>>(`${this.config.apiUrl}/auth/login`, request)
       .pipe(
         tap((res) => {
           if (!res.isError && res.data) {
@@ -44,7 +44,7 @@ export class AuthService {
 
   register(request: RegisterRequest): Observable<ApiResponse<RegisterResponse>> {
     return this.http
-      .post<ApiResponse<RegisterResponse>>(`${environment.apiUrl}/auth/register`, request)
+      .post<ApiResponse<RegisterResponse>>(`${this.config.apiUrl}/auth/register`, request)
       .pipe(catchError((err) => throwError(() => err)));
   }
 
@@ -55,7 +55,7 @@ export class AuthService {
     }
     const body: RefreshTokenRequest = { refreshToken };
     return this.http
-      .post<ApiResponse<LoginResponse>>(`${environment.apiUrl}/auth/refresh`, body)
+      .post<ApiResponse<LoginResponse>>(`${this.config.apiUrl}/auth/refresh`, body)
       .pipe(
         tap((res) => {
           if (!res.isError && res.data) {
@@ -71,7 +71,7 @@ export class AuthService {
     if (refreshToken) {
       const body: RevokeTokenRequest = { refreshToken };
       this.http
-        .post<ApiResponse<null>>(`${environment.apiUrl}/auth/revoke`, body)
+        .post<ApiResponse<null>>(`${this.config.apiUrl}/auth/revoke`, body)
         .subscribe({ error: () => {} });
     }
     this.clearSession();
