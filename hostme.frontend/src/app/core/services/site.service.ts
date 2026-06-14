@@ -1,14 +1,16 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from '../../../environments/environment';
 import { ApiResponse, SiteDto } from '../models/api.models';
+import { AppConfigService } from './app-config.service';
 
 @Injectable({ providedIn: 'root' })
 export class SiteService {
-  private readonly baseUrl = `${environment.apiUrl}/sites`;
+  private get baseUrl(): string {
+    return `${this.config.apiUrl}/sites`;
+  }
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private config: AppConfigService) {}
 
   getSites(): Observable<ApiResponse<SiteDto[]>> {
     return this.http.get<ApiResponse<SiteDto[]>>(this.baseUrl);
